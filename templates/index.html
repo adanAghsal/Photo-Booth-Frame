@@ -1080,9 +1080,9 @@
   async function countdown(index) {
     countLabel.textContent = `FOTO ${index + 1}`;
     countOverlay.classList.add("active");
-    for (let number = 3; number >= 1; number--) {
+    for (let number = 8; number >= 1; number--) {
       countText.textContent = String(number);
-      await sleep(850);
+      await sleep(1000);
     }
     countOverlay.classList.remove("active");
   }
