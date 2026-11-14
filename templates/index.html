@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4a147f" />
+  <title>Informatics Project</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --purple: #4a147f;
+      --purple-dark: #2e0c53;
+      --purple-light: #7d31ac;
+      --pink: #f45eb9;
+      --yellow: #ffe34f;
+      --paper: #fffaf3;
+      --ink: #27133a;
+      --muted: #796a86;
+      --green: #25a86a;
+      --red: #d94d61;
+      --shadow: 0 16px 42px rgba(37, 10, 65, .18);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      min-height: 100svh;
+      color: var(--ink);
+      font-family: Inter, ui-rounded, "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #6d2199, #40106f 65%, #2c0c53);
+      background-attachment: fixed;
+    }
+    body::before, body::after {
+      position: fixed; z-index: 0; width: 290px; height: 290px; border: 1px solid rgba(255,255,255,.14);
+      border-radius: 50%; pointer-events: none; content: "";
+    }
+    body::before { top: 16%; left: -190px; box-shadow: 0 0 0 24px rgba(255,255,255,.035), 0 0 0 50px rgba(255,255,255,.025); }
+    body::after { right: -210px; bottom: -90px; width: 370px; height: 370px; box-shadow: 0 0 0 28px rgba(255,255,255,.035), 0 0 0 58px rgba(255,255,255,.025); }
+    button, input, select { font: inherit; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 4px solid rgba(255, 227, 79, .9);
+      outline-offset: 3px;
+    }
+    #app { position: relative; z-index: 1; min-height: 100svh; padding: 18px; }
+    .shell { max-width: 1440px; min-height: calc(100svh - 36px); margin: auto; }
+
+    .topbar {
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      color: white;
+      margin-bottom: 14px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 44px; height: 44px; display: grid; place-items: center;
+      border: 2px solid rgba(255,255,255,.55); border-radius: 15px;
+      color: var(--yellow); font-size: 13px; font-weight: 1000; background: rgba(255,255,255,.12);
+      box-shadow: 0 8px 24px rgba(20,5,39,.2), inset 0 0 16px rgba(255,255,255,.08);
+    }
+    .brand-name { font-size: 19px; line-height: 1; font-weight: 1000; letter-spacing: .07em; }
+    .brand-caption { margin-top: 5px; font-size: 11px; font-weight: 700; opacity: .76; letter-spacing: .12em; }
+    .top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+    .source-select, .icon-button {
+      min-height: 46px; border: 1px solid rgba(255,255,255,.38); border-radius: 14px;
+      padding: 0 14px; color: white; font-weight: 850; background: rgba(255,255,255,.12);
+      box-shadow: inset 0 1px rgba(255,255,255,.13);
+    }
+    .source-select option { color: var(--ink); }
+    .icon-button { cursor: pointer; }
+    .source-select:hover, .icon-button:hover { border-color: rgba(255,255,255,.75); background: rgba(255,255,255,.18); }
+    .camera-status {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 13px; border-radius: 999px;
+      color: white; font-size: 12px; font-weight: 800; background: rgba(0,0,0,.2);
+    }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #ffcc50; }
+
+    .steps {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin: 0 0 14px; padding: 8px; border: 1px solid rgba(255,255,255,.24);
+      border-radius: 18px; background: rgba(255,255,255,.1);
+      box-shadow: 0 10px 28px rgba(20,5,39,.12), inset 0 1px rgba(255,255,255,.12);
+    }
+    .step {
+      min-height: 38px; display: flex; align-items: center; justify-content: center;
+      gap: 9px; color: rgba(255,255,255,.66); font-size: 12px; font-weight: 900;
+    }
+    .step-number {
+      width: 24px; height: 24px; display: grid; place-items: center;
+      border-radius: 50%; background: rgba(255,255,255,.15);
+    }
+    .step.active { color: white; text-shadow: 0 2px 12px rgba(255,255,255,.28); }
+    .step.active .step-number { color: var(--purple-dark); background: var(--yellow); box-shadow: 0 0 0 5px rgba(255,227,79,.14); }
+    .step.done { color: rgba(255,255,255,.88); }
+    .step.done .step-number { color: white; background: var(--pink); }
+
+    .screen { display: none; }
+    .screen.active { display: block; animation: screen-enter .38s cubic-bezier(.2,.7,.25,1) both; }
+    .panel {
+      border: 1px solid rgba(255,255,255,.46); border-radius: 24px;
+      background: linear-gradient(145deg, #fffdf9, var(--paper)); box-shadow: var(--shadow);
+    }
+    .screen-heading {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 16px; margin: 0 0 16px; color: white;
+    }
+    .screen-heading h1 { margin: 0; font-size: clamp(26px, 3.6vw, 42px); line-height: 1.08; letter-spacing: -.03em; }
+    .screen-heading p { max-width: 650px; margin: 7px 0 0; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.5; }
+    .eyebrow { margin-bottom: 7px; color: var(--yellow); font-size: 11px; font-weight: 1000; letter-spacing: .18em; text-transform: uppercase; }
+    .screen-count {
+      flex: 0 0 auto; padding: 9px 13px; border: 1px solid rgba(255,255,255,.4); border-radius: 999px;
+      color: var(--purple-dark); background: linear-gradient(135deg, #fff17c, var(--yellow)); font-size: 13px; font-weight: 1000;
+      box-shadow: 0 5px 16px rgba(34,8,55,.16);
+    }
+
+    .setup-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: stretch; }
+    .frame-panel { padding: clamp(14px, 2vw, 24px); }
+    .panel-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .panel-label strong { font-size: 15px; }
+    .panel-label span { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .frame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 12px; }
+    .frame-card {
+      position: relative; min-width: 0; padding: 9px; border: 2px solid #eee6f4; border-radius: 17px;
+      color: var(--ink); background: white; text-align: left; cursor: pointer;
+      box-shadow: 0 5px 14px rgba(47,20,68,.05);
+      transition: border-color .18s, transform .18s, box-shadow .18s;
+    }
+    .frame-card:hover { transform: translateY(-3px) rotate(-.5deg); box-shadow: 0 12px 24px rgba(47,20,68,.12); }
+    .frame-card:active { transform: scale(.98); }
+    .frame-card.selected { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(244,94,185,.18), 0 12px 24px rgba(82,25,114,.12); }
+    .frame-card.selected::after {
+      position: absolute; top: 15px; right: 15px; padding: 5px 8px; border-radius: 999px;
+      color: white; background: var(--pink); content: "DIPILIH"; font-size: 9px; font-weight: 1000; letter-spacing: .07em;
+      box-shadow: 0 4px 10px rgba(132,36,95,.2);
+    }
+    .frame-preview {
+      height: 190px; display: grid; place-items: center; overflow: hidden;
+      border-radius: 11px; background-color: #f9f4fc;
+      background-image: linear-gradient(45deg,#eee6f4 25%,transparent 25%),linear-gradient(-45deg,#eee6f4 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eee6f4 75%),linear-gradient(-45deg,transparent 75%,#eee6f4 75%);
+      background-size: 18px 18px; background-position: 0 0,0 9px,9px -9px,-9px 0;
+    }
+    .frame-preview img { width: 100%; height: 100%; object-fit: contain; transition: transform .25s ease; }
+    .frame-card:hover .frame-preview img { transform: scale(1.035); }
+    .frame-name { display: block; margin: 9px 2px 2px; overflow: hidden; font-size: 12px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+    .choice-card { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 21px; }
+    .choice-card::after {
+      position: absolute; top: -62px; right: -65px; width: 170px; height: 170px; border: 22px solid rgba(244,94,185,.09);
+      border-radius: 50%; content: ""; pointer-events: none;
+    }
+    .choice-card > * { position: relative; z-index: 1; }
+    .choice-card h2 { margin: 0; font-size: 22px; }
+    .choice-card p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .helper-note {
+      padding: 11px 12px; border-radius: 13px; color: #665871;
+      background: #f3ecf8; font-size: 12px; line-height: 1.5;
+    }
+    .spacer { flex: 1; min-height: 18px; }
+    .button {
+      min-height: 56px; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      padding: 0 20px; border: 0; border-radius: 16px; font-size: 15px; font-weight: 1000;
+      cursor: pointer; transition: transform .14s, filter .14s, box-shadow .14s;
+    }
+    .button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.035); }
+    .button:active:not(:disabled) { transform: translateY(3px) scale(.99); box-shadow: none; }
+    .button:disabled { opacity: .5; cursor: not-allowed; }
+    .button-primary { color: var(--purple-dark); background: linear-gradient(135deg, #fff079, #ffd83f); box-shadow: 0 6px 0 #e7c42e, 0 11px 20px rgba(224,175,25,.15); }
+    .button-secondary { color: white; background: linear-gradient(135deg, #7730a6, var(--purple)); box-shadow: 0 5px 0 #32105c; }
+    .button-quiet { color: var(--purple); border: 2px solid #e8dcef; background: white; }
+    .button-danger { color: #a42e4c; border: 2px solid #f4d8df; background: #fff4f6; }
+    .button-wide { width: 100%; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .notice { min-height: 20px; margin: 12px 2px 0; color: #fff6bf; font-size: 13px; font-weight: 750; }
+    .notice.error { color: #ffd1d5; }
+    .notice.success { color: #b7ffd9; }
+
+    .capture-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; }
+    .camera-panel { position: relative; min-height: 480px; overflow: hidden; padding: 12px; background: #1d1028; }
+    .camera-head { position: absolute; z-index: 2; top: 24px; left: 24px; right: 24px; display: flex; justify-content: space-between; gap: 12px; pointer-events: none; }
+    .camera-pill { padding: 9px 12px; border-radius: 999px; color: white; background: rgba(26,12,39,.7); font-size: 12px; font-weight: 900; backdrop-filter: blur(8px); }
+    #liveFeed { width: 100%; height: 100%; min-height: 455px; display: block; border-radius: 16px; object-fit: cover; background: #100a16; }
+    #liveFeed.front-camera { transform: scaleX(-1); }
+    .camera-flash { position: absolute; z-index: 3; inset: 12px; border-radius: 16px; background: white; opacity: 0; pointer-events: none; }
+    .camera-flash.active { animation: camera-flash .28s ease-out; }
+    .count-overlay {
+      position: absolute; inset: 12px; display: none; align-items: center; justify-content: center;
+      overflow: hidden; border-radius: 16px; color: white;
+      background: radial-gradient(circle, rgba(30,10,46,.18), rgba(30,10,46,.53)); pointer-events: none;
+    }
+    .count-overlay::before, .count-overlay::after { position: absolute; width: 220px; height: 220px; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; content: ""; }
+    .count-overlay::before { animation: ring-out 2.4s ease-out infinite; }
+    .count-overlay::after { animation: ring-out 2.4s .8s ease-out infinite; }
+    .count-overlay.active { display: flex; }
+    #countText { z-index: 1; font-size: clamp(80px, 15vw, 170px); font-weight: 1000; line-height: 1; text-shadow: 0 8px 30px rgba(0,0,0,.55); animation: count-pop .85s ease-in-out infinite; }
+    #countLabel { position: absolute; z-index: 1; top: 24%; padding: 10px 16px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; background: rgba(30,10,46,.72); font-size: 16px; font-weight: 950; backdrop-filter: blur(8px); }
+    .capture-side { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+    .capture-side h2 { margin: 0; font-size: 20px; }
+    .capture-side p { margin: 6px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .progress-track { height: 9px; overflow: hidden; border-radius: 999px; background: #eee6f4; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--pink), #a34ce0, #ffaddb); background-size: 180% 100%; transition: width .35s cubic-bezier(.2,.7,.25,1); animation: progress-glow 2.6s linear infinite; }
+    .mini-shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .mini-shot { aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; border: 2px dashed #d9cce3; border-radius: 11px; color: #9c8ba7; font-size: 12px; font-weight: 900; background: #f8f3fb; }
+    .mini-shot img { width: 100%; height: 100%; object-fit: cover; }
+    .retake-notice { display: none; padding: 10px; border-radius: 12px; color: #714019; background: #fff1c8; font-size: 12px; font-weight: 850; }
+    .retake-notice.active { display: block; }
+
+    .review-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 1fr); gap: 16px; }
+    .review-panel { padding: clamp(14px, 2vw, 24px); }
+    .shots-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .shot-card {
+      position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden; padding: 8px; border: 2px solid #eee6f4;
+      border-radius: 16px; background: white;
+      box-shadow: 0 5px 14px rgba(47,20,68,.05); transition: transform .16s, border-color .16s, box-shadow .16s;
+    }
+    .shot-card img { width: 100%; aspect-ratio: 4 / 3; display: block; border-radius: 10px; object-fit: cover; background: #eee; }
+    .shot-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 9px 2px 2px; font-size: 12px; font-weight: 900; }
+    .retake-tag { padding: 6px 8px; border-radius: 999px; color: #84245f; background: #ffe4f4; font-size: 10px; }
+    .shot-card-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-top: 8px; }
+    .shot-card-actions button { min-height: 38px; border: 0; border-radius: 10px; font-size: 11px; font-weight: 900; cursor: pointer; touch-action: manipulation; }
+    .shot-edit-button { color: white; background: var(--purple); }
+    .shot-retake-button { color: #84245f; background: #ffe4f4; }
+    .review-side { display: flex; flex-direction: column; padding: 18px; }
+    .review-side h2 { margin: 0; font-size: 20px; }
+    .review-side p { margin: 8px 0 16px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .review-frame { height: min(68vh, 680px); min-height: 300px; display: grid; place-items: center; margin-bottom: 14px; overflow: hidden; border-radius: 16px; background: #f5eef9; }
+    #reviewCanvas { display: block; cursor: pointer; filter: drop-shadow(0 8px 18px rgba(39,19,58,.22)); }
+    .crop-editor[hidden] { display: none; }
+    body.crop-edit-open { overflow: hidden; }
+    .crop-editor {
+      position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 16px;
+      background: rgba(22, 8, 35, .82); backdrop-filter: blur(7px);
+    }
+    .crop-dialog {
+      width: min(100%, 620px); max-height: 100%; overflow: auto; padding: clamp(16px, 4vw, 26px);
+      border: 1px solid rgba(255,255,255,.62); border-radius: 22px; background: var(--paper); box-shadow: 0 24px 70px rgba(0,0,0,.35);
+    }
+    .crop-dialog h2 { margin: 0; color: var(--ink); font-size: 24px; }
+    .crop-dialog p { margin: 7px 0 16px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .crop-viewport {
+      width: min(100%, 520px); aspect-ratio: var(--crop-aspect, 1);
+      margin: 0 auto; overflow: hidden; border-radius: 16px;
+      background: #21142c; box-shadow: 0 0 0 3px white, 0 10px 28px rgba(47,20,68,.2); cursor: grab; touch-action: none; user-select: none;
+    }
+    .crop-viewport.dragging { cursor: grabbing; }
+    .crop-viewport canvas { display: block; pointer-events: none; }
+    .crop-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+    .crop-actions .button { min-height: 48px; }
+    .zoom-controls { display: flex; align-items: center; gap: 8px; margin-right: auto; }
+    .zoom-controls .button { min-width: 48px; padding: 0 12px; }
+    .zoom-level { min-width: 46px; color: var(--ink); font-size: 13px; font-weight: 900; text-align: center; }
+
+    .delivery-layout { display: grid; grid-template-columns: minmax(260px, .9fr) minmax(0, 1.1fr); gap: 16px; }
+    .result-panel {
+      position: relative; display: grid; place-items: center; min-height: 520px; padding: 18px; overflow: hidden;
+      background: radial-gradient(circle at 50% 40%, #4e3460, #261537 70%);
+    }
+    #resultImage { position: relative; z-index: 1; max-width: 100%; max-height: 72vh; border: 4px solid rgba(255,255,255,.75); border-radius: 17px; object-fit: contain; box-shadow: 0 14px 36px rgba(0,0,0,.38), 0 0 30px rgba(244,94,185,.2); animation: photo-reveal .55s cubic-bezier(.2,.7,.25,1) both; }
+    .delivery-card { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; padding: 20px; }
+    .qr-area { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+    .qr-area h2 { margin: 0; font-size: 20px; }
+    .qr-area p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    #qrImage { width: min(100%, 220px); aspect-ratio: 1; padding: 10px; border: 1px solid #eee6f4; border-radius: 15px; background: white; object-fit: contain; }
+    .qr-placeholder { width: min(100%, 220px); aspect-ratio: 1; display: grid; place-items: center; padding: 20px; border: 2px dashed #d7c8e3; border-radius: 15px; color: var(--muted); background: #faf6fc; font-size: 13px; font-weight: 750; }
+    .qr-placeholder[hidden] { display: none; }
+    .download-link { color: var(--purple); font-size: 13px; font-weight: 850; }
+    .delivery-footer { display: flex; grid-column: 1 / -1; justify-content: flex-end; padding-top: 14px; border-top: 1px solid #eee6f4; }
+
+    @keyframes screen-enter { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes count-pop { 0%,100% { transform: scale(.92); } 50% { transform: scale(1.06); } }
+    @keyframes ring-out { 0% { opacity: .48; transform: scale(.45); } 100% { opacity: 0; transform: scale(2.4); } }
+    @keyframes progress-glow { to { background-position: -180% 0; } }
+    @keyframes photo-reveal { from { opacity: 0; transform: scale(.94) rotate(-1deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+    @keyframes camera-flash { 0% { opacity: .8; } 100% { opacity: 0; } }
+
+    @media (max-width: 900px) {
+      #app { padding: 12px; }
+      .setup-layout, .capture-layout, .review-layout { grid-template-columns: minmax(0, 1fr); }
+      .choice-card, .capture-side, .review-side { min-height: auto; }
+      .choice-card .spacer, .capture-side .spacer, .review-side .spacer { display: none; }
+      .review-side { order: -1; }
+      .review-frame { height: min(58svh, 560px); min-height: 240px; }
+      .review-layout { gap: 12px; }
+      .camera-panel { min-height: 0; }
+      #liveFeed { min-height: min(55vh, 500px); }
+      .delivery-layout { grid-template-columns: minmax(0,1fr); }
+      .result-panel { min-height: 320px; }
+      #resultImage { max-height: 48vh; }
+    }
+    @media (max-width: 560px) {
+      #app { padding: 9px; }
+      .shell { min-height: calc(100svh - 18px); }
+      .topbar { flex-wrap: wrap; }
+      .top-actions { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+      .camera-status { flex: 1 1 100%; }
+      .source-select, .icon-button { flex: 1; }
+      .steps { gap: 2px; padding: 5px; }
+      .step { gap: 5px; font-size: 9px; }
+      .step-number { width: 21px; height: 21px; }
+      .screen-heading { align-items: flex-start; }
+      .screen-count { max-width: 105px; text-align: center; font-size: 11px; }
+      .frame-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .frame-preview { height: 160px; }
+      .shots-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .camera-head { top: 18px; left: 18px; right: 18px; }
+      #liveFeed { min-height: 48vh; }
+      .delivery-footer .button { width: 100%; }
+      .button-row > .button { flex: 1 1 100%; }
+    }
+    body.camera-mode { overflow: hidden; background: #100a16; }
+    body.camera-mode #app { position: fixed; inset: 0; min-height: 100dvh; padding: 0; overflow: hidden; }
+    body.camera-mode .shell { width: 100%; max-width: none; min-height: 100dvh; margin: 0; }
+    body.camera-mode .topbar {
+      position: absolute; z-index: 20; top: 0; right: 0; left: 0;
+      min-height: 0; margin: 0; padding: 12px 16px; pointer-events: none;
+    }
+    body.camera-mode .brand, body.camera-mode .steps { display: none; }
+    body.camera-mode .top-actions { width: auto; margin-left: auto; pointer-events: auto; }
+    body.camera-mode .camera-status { padding: 10px; }
+    body.camera-mode #cameraStatus { font-size: 0; }
+    body.camera-mode .screen.active#captureScreen {
+      position: fixed; z-index: 10; inset: 0; width: 100%; height: 100vh; height: 100dvh;
+      padding: 0; overflow: hidden; background: #100a16;
+    }
+    body.camera-mode #captureScreen .screen-heading {
+      position: absolute; z-index: 2; top: 78px; right: 20px; left: 20px;
+      align-items: flex-start; margin: 0; pointer-events: none;
+    }
+    body.camera-mode #captureScreen .screen-heading h1 { font-size: clamp(26px, 4vw, 40px); }
+    body.camera-mode #captureScreen .screen-heading p { display: none; }
+    body.camera-mode #captureScreen .eyebrow { margin-bottom: 4px; }
+    body.capturing-photo.camera-mode .topbar,
+    body.capturing-photo.camera-mode #captureScreen .screen-heading,
+    body.capturing-photo.camera-mode #captureScreen .capture-side,
+    body.capturing-photo.camera-mode #captureScreen .camera-head,
+    body.capturing-photo.camera-mode #captureScreen .notice { display: none; }
+    body.camera-mode .capture-layout { display: block; height: 100%; }
+    body.camera-mode .camera-panel {
+      position: absolute; inset: 0; min-height: 0; padding: 0; border: 0; border-radius: 0;
+      background: #100a16; box-shadow: none;
+    }
+    body.camera-mode #liveFeed { width: 100%; height: 100%; min-height: 0; border-radius: 0; object-fit: cover; }
+    body.camera-mode .camera-head { display: none; }
+    body.camera-mode .camera-flash, body.camera-mode .count-overlay { inset: 0; border-radius: 0; }
+    body.camera-mode .capture-side {
+      position: absolute; z-index: 4; right: 0; bottom: 0; left: 0;
+      display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, 280px);
+      grid-template-areas: "summary actions" "progress actions" "shots actions" "retake actions" "notice actions";
+      gap: 9px 20px; min-height: 0; padding: 18px 24px calc(18px + env(safe-area-inset-bottom));
+      border: 0; border-radius: 0; color: white;
+      background: linear-gradient(0deg, rgba(20,8,33,.96), rgba(20,8,33,.82) 75%, rgba(20,8,33,0));
+      box-shadow: none; backdrop-filter: blur(8px);
+    }
+    body.camera-mode .capture-side > div:first-child { grid-area: summary; }
+    body.camera-mode .capture-side .eyebrow { color: var(--yellow) !important; }
+    body.camera-mode .capture-side h2 { color: white; }
+    body.camera-mode .capture-side p { color: rgba(255,255,255,.82); }
+    body.camera-mode .capture-side .progress-track { grid-area: progress; align-self: center; }
+    body.camera-mode .capture-side .mini-shots { grid-area: shots; grid-template-columns: repeat(6, minmax(0, 58px)); }
+    body.camera-mode .capture-side .retake-notice { grid-area: retake; }
+    body.camera-mode .capture-side .notice { grid-area: notice; min-height: 0; margin: 0; }
+    body.camera-mode .capture-side .spacer { display: none; }
+    body.camera-mode .capture-actions { grid-area: actions; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+    @media (max-width: 560px) {
+      body.camera-mode .topbar { padding: 10px 12px; }
+      body.camera-mode .top-actions { flex-wrap: nowrap; gap: 7px; }
+      body.camera-mode .source-select { flex: 0 1 auto; min-height: 42px; padding: 0 9px; font-size: 11px; }
+      body.camera-mode .camera-status { flex: 0 0 auto; padding: 9px; }
+      body.camera-mode #fullscreenButton { display: none; }
+      body.camera-mode #captureScreen .screen-heading { top: 72px; right: 14px; left: 14px; }
+      body.camera-mode #captureScreen .screen-heading h1 { font-size: clamp(24px, 7vw, 32px); }
+      body.camera-mode #captureScreen .screen-count { max-width: none; }
+      body.camera-mode .capture-side {
+        grid-template-columns: minmax(0, 1fr); grid-template-areas: "summary" "progress" "shots" "retake" "actions" "notice";
+        gap: 8px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+      }
+      body.camera-mode .capture-side > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      body.camera-mode .capture-side .eyebrow { display: none; }
+      body.camera-mode .capture-side h2 { font-size: 17px; }
+      body.camera-mode .capture-side p { display: none; }
+      body.camera-mode .capture-side .mini-shots { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+      body.camera-mode .capture-side .mini-shot { max-width: 58px; justify-self: center; }
+      body.camera-mode .capture-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+      body.camera-mode #captureButton { grid-column: 1 / -1; }
+      body.camera-mode .capture-actions .button { min-height: 48px; padding: 0 10px; font-size: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">PB</div>
+        <div>
+          <div class="brand-name">PHOTOBOOTH</div>
+          <div class="brand-caption">BUAT KENANGAN BERSAMA</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="camera-status"><span class="status-dot" id="statusDot"></span><span id="cameraStatus">Kamera belum diaktifkan</span></span>
+        <select id="sourceSelect" class="source-select" aria-label="Pilih kamera">
+          <option value="environment">KAMERA BELAKANG</option>
+          <option value="user">KAMERA DEPAN</option>
+        </select>
+        <button id="fullscreenButton" class="icon-button" type="button">⛶ LAYAR PENUH</button>
+      </div>
+    </header>
+
+    <nav class="steps" aria-label="Langkah photobooth">
+      <div class="step active" data-step="1"><span class="step-number">1</span> PILIH FRAME</div>
+      <div class="step" data-step="2"><span class="step-number">2</span> SESI FOTO</div>
+      <div class="step" data-step="3"><span class="step-number">3</span> CEK FOTO</div>
+      <div class="step" data-step="4"><span class="step-number">4</span> AMBIL HASIL</div>
+    </nav>
+
+    <main>
+      <section id="frameScreen" class="screen active" aria-labelledby="frameTitle">
+        <div class="screen-heading">
+          <div><div class="eyebrow">LANGKAH 01</div><h1 id="frameTitle">Pilih template favoritmu</h1><p>Jumlah foto otomatis mengikuti slot pada frame yang dipilih.</p></div>
+          <span class="screen-count">SENTUH UNTUK MEMILIH</span>
+        </div>
+        <div class="setup-layout">
+          <div class="panel frame-panel">
+            <div class="panel-label"><strong>Template tersedia</strong><span id="frameCount">Memuat frame…</span></div>
+            <div id="frameGrid" class="frame-grid" aria-live="polite"></div>
+          </div>
+          <aside class="panel choice-card">
+            <div class="eyebrow" style="color:var(--purple-light)">SESI FOTO</div>
+            <h2>Jumlah foto otomatis</h2>
+            <p id="photoCountHelp">Pilih frame untuk melihat jumlah foto.</p>
+            <div class="helper-note">Setiap foto bisa diulang satu per satu sebelum hasil disimpan.</div>
+            <div class="spacer"></div>
+            <button id="continueToCapture" class="button button-primary button-wide" type="button" disabled>PILIH FRAME DULU&nbsp; →</button>
+          </aside>
+        </div>
+        <p id="notice" class="notice" role="status" aria-live="polite"></p>
+      </section>
+
+      <section id="captureScreen" class="screen" aria-labelledby="captureTitle">
+        <div class="screen-heading">
+          <div><div class="eyebrow">LANGKAH 02</div><h1 id="captureTitle">Sesi foto</h1><p id="captureSubtitle">Lihat kamera, lalu sentuh tombol untuk mulai.</p></div>
+          <span id="captureCounter" class="screen-count">FOTO 0 / 0</span>
+        </div>
+        <div class="capture-layout">
+          <div class="panel camera-panel">
+            <div class="camera-head"><span class="camera-pill" id="liveCameraLabel">LIVE CAMERA</span><span class="camera-pill">SENYUM 😊</span></div>
+            <video id="liveFeed" autoplay playsinline muted aria-label="Tampilan langsung kamera"></video>
+            <div id="cameraFlash" class="camera-flash"></div>
+            <div id="countOverlay" class="count-overlay" aria-live="assertive"><span id="countLabel">FOTO 1</span><span id="countText">3</span></div>
+          </div>
+          <aside class="panel capture-side">
+            <div><div class="eyebrow" style="color:var(--purple-light)">MOMENMU</div><h2 id="captureActionTitle">Siap untuk foto?</h2><p id="captureActionText">Izinkan akses kamera di browser, lalu mulai sesi fotomu.</p></div>
+            <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+            <div id="miniShots" class="mini-shots" aria-label="Foto yang sudah diambil"></div>
+            <div id="retakeNotice" class="retake-notice"></div>
+            <div class="spacer"></div>
+            <div class="capture-actions">
+              <button id="activateCameraButton" class="button button-secondary button-wide" type="button">AKTIFKAN KAMERA</button>
+              <button id="captureButton" class="button button-primary button-wide" type="button" disabled>MULAI FOTO</button>
+              <button id="backToFrames" class="button button-quiet button-wide" type="button">← GANTI FRAME</button>
+            </div>
+            <p id="captureNotice" class="notice" role="status" aria-live="polite"></p>
+          </aside>
+        </div>
+      </section>
+
+      <section id="reviewScreen" class="screen" aria-labelledby="reviewTitle">
+        <div class="screen-heading">
+          <div><div class="eyebrow">LANGKAH 03</div><h1 id="reviewTitle">Cek hasil fotomu</h1><p>Lihat semua foto di dalam frame, lalu sentuh foto yang ingin diatur.</p></div>
+          <span id="reviewCounter" class="screen-count">3 FOTO</span>
+        </div>
+        <div class="review-layout">
+          <div class="panel review-panel">
+            <div class="panel-label"><strong>Geser foto agar pas di frame</strong><span>Atur posisi, atau retake jika ingin foto ulang</span></div>
+            <div id="shotsGrid" class="shots-grid"></div>
+          </div>
+          <aside class="panel review-side">
+            <h2>Hasil foto di dalam frame</h2>
+            <p>Sentuh foto pada preview untuk menggeser atau zoom. Perubahan terlihat langsung di sini.</p>
+            <div class="review-frame"><canvas id="reviewCanvas" role="img" aria-label="Pratinjau hasil foto di dalam frame"></canvas></div>
+            <div class="spacer"></div>
+            <button id="composeButton" class="button button-primary button-wide" type="button">LANJUT KE HASIL&nbsp; →</button>
+            <button id="reviewBackButton" class="button button-quiet button-wide" type="button">↺ ULANGI SEMUA FOTO</button>
+          </aside>
+        </div>
+        <p id="reviewNotice" class="notice" role="status" aria-live="polite"></p>
+      </section>
+
+      <div id="cropEditor" class="crop-editor" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
+        <div class="crop-dialog">
+          <h2 id="cropTitle">Atur posisi foto</h2>
+          <p>Geser foto di area frame untuk mengatur posisinya. Gunakan tombol minus dan plus untuk zoom.</p>
+          <div id="cropViewport" class="crop-viewport" role="group" tabindex="0" aria-label="Geser foto untuk mengatur crop">
+            <canvas id="cropCanvas" aria-label="Pratinjau frame dengan foto terpilih"></canvas>
+          </div>
+          <div class="crop-actions">
+            <div class="zoom-controls" aria-label="Atur zoom foto">
+              <button id="zoomOutButton" class="button button-quiet" type="button" aria-label="Zoom out">−</button>
+              <output id="cropZoomLevel" class="zoom-level">1.0×</output>
+              <button id="zoomInButton" class="button button-quiet" type="button" aria-label="Zoom in">+</button>
+            </div>
+            <button id="centerCropButton" class="button button-quiet" type="button">POSISI TENGAH</button>
+            <button id="cancelCropButton" class="button button-quiet" type="button">BATAL</button>
+            <button id="saveCropButton" class="button button-primary" type="button">SIMPAN POSISI</button>
+          </div>
+        </div>
+      </div>
+
+      <section id="deliveryScreen" class="screen" aria-labelledby="deliveryTitle">
+        <div class="screen-heading">
+          <div><div class="eyebrow">LANGKAH 04</div><h1 id="deliveryTitle">Hasilnya siap!</h1><p>Scan QR untuk melihat dan mengunduh hasil gabungan serta semua foto satuan.</p></div>
+          <span class="screen-count">TERIMA KASIH</span>
+        </div>
+        <div class="delivery-layout">
+          <div class="panel result-panel"><img id="resultImage" alt="Hasil akhir photobooth" /></div>
+          <div class="panel delivery-card">
+            <div class="qr-area">
+              <h2>SCAN UNTUK HASIL SESI</h2>
+              <p id="qrStatus">Menyiapkan QR hasil fotomu…</p>
+              <div id="qrPlaceholder" class="qr-placeholder">QR hasil sesi akan muncul sebentar lagi.</div>
+              <img id="qrImage" alt="QR code untuk hasil foto" hidden />
+              <a id="openResultLink" class="download-link" href="#" target="_blank" rel="noreferrer" hidden>Buka galeri hasil sesi</a>
+            </div>
+            <div class="delivery-footer"><button id="newSessionButton" class="button button-quiet" type="button">SESI BARU</button></div>
+          </div>
+        </div>
+        <p id="deliveryNotice" class="notice" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+  </div>
+</div>
+<script>
+  const screens = [...document.querySelectorAll(".screen")];
+  const steps = [...document.querySelectorAll(".step")];
+  const cameraFacingSelect = document.getElementById("sourceSelect");
+  const statusDot = document.getElementById("statusDot");
+  const cameraStatus = document.getElementById("cameraStatus");
+  const liveFeed = document.getElementById("liveFeed");
+  const countOverlay = document.getElementById("countOverlay");
+  const countText = document.getElementById("countText");
+  const countLabel = document.getElementById("countLabel");
+  const cropEditor = document.getElementById("cropEditor");
+  const cropViewport = document.getElementById("cropViewport");
+  const cropCanvas = document.getElementById("cropCanvas");
+  const reviewCanvas = document.getElementById("reviewCanvas");
+  const cropZoomLevel = document.getElementById("cropZoomLevel");
+
+  let cameraFacingMode = "environment";
+  let cameraStream = null;
+  let streamFacingMode = null;
+  let frames = [];
+  let activeFrame = null;
+  let photoCount = 0;
+  let shots = [];
+  let retakeIndex = null;
+  let busy = false;
+  let cameraReady = false;
+  let cropEditingIndex = null;
+  let cropOriginalPosition = null;
+  let cropDrag = null;
+  const framePreviewCache = new Map();
+  const previewRenderVersions = new WeakMap();
+
+  function showNotice(id, text = "", type = "") {
+    const node = document.getElementById(id);
+    node.textContent = text;
+    node.classList.toggle("error", type === "error");
+    node.classList.toggle("success", type === "success");
+  }
+
+  function showScreen(id, stepNumber) {
+    screens.forEach(screen => screen.classList.toggle("active", screen.id === id));
+    document.body.classList.toggle("camera-mode", id === "captureScreen");
+    steps.forEach(step => {
+      const stepValue = Number(step.dataset.step);
+      step.classList.toggle("active", stepValue === stepNumber);
+      step.classList.toggle("done", stepValue < stepNumber);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function apiJson(url, options = {}) {
+    const response = await fetch(url, { cache: "no-store", ...options });
+    let data;
+    try { data = await response.json(); }
+    catch { throw new Error("Respons server tidak dapat dibaca."); }
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || `Permintaan gagal (${response.status}).`);
+    }
+    return data;
+  }
+
+  function postJson(url, body, headers = {}) {
+    return apiJson(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(body)
+    });
+  }
+
+  function framePreviewUrl(id) {
+    return `/frame_preview/${encodeURIComponent(id)}?v=${Date.now()}`;
+  }
+
+  function updatePhotoCountInfo() {
+    const frame = frames.find(item => item.id === activeFrame);
+    photoCount = frame?.slots || 0;
+    document.getElementById("photoCountHelp").textContent = frame
+      ? `Frame ini memiliki ${photoCount} slot. Sesi akan mengambil ${photoCount} foto.`
+      : "Pilih frame untuk melihat jumlah foto.";
+  }
+
+  function renderFrames() {
+    const grid = document.getElementById("frameGrid");
+    grid.replaceChildren();
+    frames.forEach(frame => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = `frame-card${frame.id === activeFrame ? " selected" : ""}`;
+      card.dataset.frameId = frame.id;
+      card.setAttribute("aria-pressed", String(frame.id === activeFrame));
+      card.addEventListener("click", () => selectFrame(frame.id));
+      const preview = document.createElement("span");
+      preview.className = "frame-preview";
+      const image = document.createElement("img");
+      image.src = framePreviewUrl(frame.id);
+      image.alt = "";
+      preview.append(image);
+      const name = document.createElement("span");
+      name.className = "frame-name";
+      name.textContent = frame.label || frame.id;
+      card.append(preview, name);
+      grid.append(card);
+    });
+    updateFrameSelection();
+  }
+
+  function updateFrameSelection() {
+    updatePhotoCountInfo();
+    document.querySelectorAll("#frameGrid .frame-card").forEach(card => {
+      const selected = card.dataset.frameId === activeFrame;
+      card.classList.toggle("selected", selected);
+      card.setAttribute("aria-pressed", String(selected));
+    });
+    document.getElementById("frameCount").textContent = `${frames.length} template`;
+    const continueButton = document.getElementById("continueToCapture");
+    continueButton.disabled = !activeFrame;
+    continueButton.textContent = activeFrame ? "LANJUT KE SESI FOTO  →" : "PILIH FRAME DULU  →";
+  }
+
+  function selectFrame(frameId) {
+    activeFrame = frameId;
+    updateFrameSelection();
+  }
+
+  async function loadFrames() {
+    try {
+      const data = await apiJson(`/api/frames?v=${Date.now()}`);
+      frames = data.frames || [];
+      activeFrame = frames.some(frame => frame.id === data.active)
+        ? data.active
+        : frames[0]?.id || null;
+      renderFrames();
+      if (!frames.length) showNotice("notice", "Belum ada template frame yang tersedia.", "error");
+    } catch (error) {
+      showNotice("notice", `Gagal memuat template: ${error.message}`, "error");
+      document.getElementById("frameCount").textContent = "Tidak dapat dimuat";
+    }
+  }
+
+  function updateCameraLabel() {
+    const frontCamera = cameraFacingMode === "user";
+    liveFeed.classList.toggle("front-camera", frontCamera);
+    document.getElementById("liveCameraLabel").textContent =
+      frontCamera ? "KAMERA DEPAN" : "KAMERA BELAKANG";
+  }
+
+  function setCameraStatus(ready, text) {
+    cameraReady = ready;
+    statusDot.style.background = ready ? "var(--green)" : "var(--red)";
+    cameraStatus.textContent = text;
+    document.getElementById("captureButton").disabled = busy || !ready;
+    document.getElementById("activateCameraButton").hidden = ready;
+  }
+
+  function getCameraErrorMessage(error) {
+    if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+      return "Izin kamera ditolak. Izinkan kamera untuk situs ini di pengaturan Safari, lalu coba lagi.";
+    }
+    if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+      return "Kamera tidak ditemukan di perangkat ini.";
+    }
+    if (
+      error.name === "NotReadableError" ||
+      error.name === "TrackStartError" ||
+      error.name === "AbortError" ||
+      (error.message || "").toLowerCase().includes("timeout starting video source")
+    ) {
+      return "Kamera gagal dimulai. Tutup aplikasi lain yang memakai kamera (misalnya Zoom atau Teams), cek izin kamera di browser dan Windows, lalu coba lagi.";
+    }
+    if (!window.isSecureContext) {
+      return "Kamera hanya bisa dipakai melalui HTTPS. Buka domain booth yang aman.";
+    }
+    return error.message || "Kamera tidak dapat diaktifkan.";
+  }
+
+  async function stopBrowserCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+    }
+    streamFacingMode = null;
+    liveFeed.pause();
+    liveFeed.srcObject = null;
+    setCameraStatus(false, "Kamera belum diaktifkan");
+  }
+
+  async function startBrowserCamera() {
+    if (!window.isSecureContext) {
+      const error = new Error("Kamera hanya bisa dipakai melalui HTTPS. Buka domain booth yang aman.");
+      setCameraStatus(false, "Butuh koneksi HTTPS");
+      throw error;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const error = new Error("Browser ini tidak mendukung akses kamera. Gunakan browser terbaru melalui HTTPS.");
+      setCameraStatus(false, "Kamera tidak didukung");
+      throw error;
+    }
+
+    const activeTrack = cameraStream?.getVideoTracks().find(track => track.readyState === "live");
+    if (activeTrack && streamFacingMode === cameraFacingMode) {
+      setCameraStatus(true, "Kamera siap");
+      return;
+    }
+
+    await stopBrowserCamera();
+    setCameraStatus(false, "Meminta izin kamera…");
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: cameraFacingMode }
+        }
+      });
+      streamFacingMode = cameraFacingMode;
+      liveFeed.srcObject = cameraStream;
+      await liveFeed.play();
+      if (liveFeed.readyState < 2) {
+        await new Promise(resolve => liveFeed.addEventListener("loadeddata", resolve, { once: true }));
+      }
+      cameraStream.getVideoTracks().forEach(track => {
+        track.addEventListener("ended", () => {
+          if (cameraStream && !cameraStream.getVideoTracks().some(item => item.readyState === "live")) {
+            cameraStream = null;
+            streamFacingMode = null;
+            liveFeed.srcObject = null;
+            setCameraStatus(false, "Kamera terputus");
+            showNotice("captureNotice", "Koneksi kamera terputus. Aktifkan kamera lagi untuk melanjutkan.", "error");
+          }
+        }, { once: true });
+      });
+      setCameraStatus(true, "Kamera siap");
+    } catch (error) {
+      await stopBrowserCamera();
+      setCameraStatus(false, "Kamera perlu izin");
+      throw new Error(getCameraErrorMessage(error));
+    }
+  }
+
+  function renderMiniShots() {
+    const wrap = document.getElementById("miniShots");
+    wrap.replaceChildren();
+    for (let index = 0; index < photoCount; index++) {
+      const tile = document.createElement("div");
+      tile.className = "mini-shot";
+      if (shots[index]) {
+        const image = document.createElement("img");
+        image.src = shots[index].url;
+        image.alt = `Foto ${index + 1}`;
+        tile.append(image);
+      } else {
+        tile.textContent = String(index + 1);
+      }
+      wrap.append(tile);
+    }
+    document.getElementById("captureCounter").textContent = `FOTO ${shots.length} / ${photoCount}`;
+    document.getElementById("progressFill").style.width = `${(shots.length / photoCount) * 100}%`;
+  }
+
+  function renderReview() {
+    const grid = document.getElementById("shotsGrid");
+    grid.replaceChildren();
+    shots.forEach((shot, index) => {
+      const card = document.createElement("article");
+      card.className = "shot-card";
+      const image = document.createElement("img");
+      image.src = shot.url;
+      image.alt = `Foto ${index + 1}`;
+      image.style.aspectRatio = String(getCropAspect(index));
+      image.style.objectPosition = `${(shot.cropX ?? 0.5) * 100}% ${(shot.cropY ?? 0.5) * 100}%`;
+      const footer = document.createElement("span");
+      footer.className = "shot-card-bottom";
+      const label = document.createElement("span");
+      label.textContent = `FOTO ${index + 1}`;
+      footer.append(label);
+      const actions = document.createElement("div");
+      actions.className = "shot-card-actions";
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "shot-edit-button";
+      editButton.textContent = "Edit";
+      editButton.setAttribute("aria-label", `Atur posisi foto ${index + 1}`);
+      editButton.addEventListener("click", () => openCropEditor(index));
+      const retakeButton = document.createElement("button");
+      retakeButton.type = "button";
+      retakeButton.className = "shot-retake-button";
+      retakeButton.textContent = "RETAKE";
+      retakeButton.setAttribute("aria-label", `Ambil ulang foto ${index + 1}`);
+      retakeButton.addEventListener("click", () => startRetake(index));
+      actions.append(editButton, retakeButton);
+      card.append(image, footer, actions);
+      grid.append(card);
+    });
+    document.getElementById("reviewCounter").textContent = `${shots.length} FOTO`;
+    showScreen("reviewScreen", 3);
+    showNotice("reviewNotice");
+    renderCompositionPreview(reviewCanvas).catch(error =>
+      showNotice("reviewNotice", `Gagal menampilkan preview frame: ${error.message}`, "error")
+    );
+  }
+
+  function getPhotoTarget(index) {
+    const frame = frames.find(item => item.id === activeFrame);
+    const slots = frame?.slot_bounds || [];
+    if (!slots.length) return null;
+    if (slots.length > 1) {
+      const slot = slots[index];
+      return slot ? { x: slot.x, y: slot.y, width: slot.width, height: slot.height } : null;
+    }
+    if (photoCount === 1) {
+      const slot = slots[Math.min(index, slots.length - 1)];
+      return { x: slot.x, y: slot.y, width: slot.width, height: slot.height };
+    }
+    const slot = slots[0];
+
+    const gap = Math.max(4, Math.min(12, Math.floor(slot.width / 100)));
+    const y0 = Math.round(index * slot.height / photoCount);
+    const yNext = Math.round((index + 1) * slot.height / photoCount);
+    const top = y0 + (index ? Math.floor(gap / 2) : 0);
+    const bottom = yNext - (index < photoCount - 1 ? gap - Math.floor(gap / 2) : 0);
+    return {
+      x: slot.x,
+      y: slot.y + top,
+      width: slot.width,
+      height: Math.max(1, bottom - top)
+    };
+  }
+
+  function getCropAspect(index) {
+    const target = getPhotoTarget(index);
+    return target ? target.width / target.height : 4 / 3;
+  }
+
+  function getPreviewShotIndex(clientX, clientY) {
+    const frame = frames.find(item => item.id === activeFrame);
+    if (!frame?.size) return null;
+    const rect = reviewCanvas.getBoundingClientRect();
+    const frameX = (clientX - rect.left) * frame.size.width / rect.width;
+    const frameY = (clientY - rect.top) * frame.size.height / rect.height;
+    return shots.findIndex((shot, index) => {
+      const target = getPhotoTarget(index);
+      return target &&
+        frameX >= target.x && frameX <= target.x + target.width &&
+        frameY >= target.y && frameY <= target.y + target.height;
+    });
+  }
+
+  function getFrameOverlay(frameId) {
+    if (!framePreviewCache.has(frameId)) {
+      const image = new Image();
+      const promise = new Promise((resolve, reject) => {
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Frame tidak dapat dimuat."));
+        image.src = framePreviewUrl(frameId);
+      }).catch(error => {
+        framePreviewCache.delete(frameId);
+        throw error;
+      });
+      framePreviewCache.set(frameId, promise);
+    }
+    return framePreviewCache.get(frameId);
+  }
+
+  function getShotPreview(shot) {
+    if (!shot.previewPromise) {
+      const image = new Image();
+      shot.previewImage = image;
+      shot.previewPromise = new Promise((resolve, reject) => {
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Foto tidak dapat dimuat untuk preview."));
+        image.src = shot.url;
+      });
+    }
+    return shot.previewPromise;
+  }
+
+  function drawPhotoInSlot(context, image, shot, target) {
+    const zoom = shot.cropZoom ?? 1;
+    const scale = Math.max(target.width / image.naturalWidth, target.height / image.naturalHeight) * zoom;
+    const sourceWidth = target.width / scale;
+    const sourceHeight = target.height / scale;
+    const sourceX = (image.naturalWidth - sourceWidth) * (shot.cropX ?? 0.5);
+    const sourceY = (image.naturalHeight - sourceHeight) * (shot.cropY ?? 0.5);
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      target.x,
+      target.y,
+      target.width,
+      target.height
+    );
+  }
+
+  function fitCanvasToParent(canvas) {
+    const parent = canvas.parentElement;
+    if (!parent || !canvas.width || !canvas.height) return;
+    const scale = Math.min(parent.clientWidth / canvas.width, parent.clientHeight / canvas.height);
+    if (!Number.isFinite(scale) || scale <= 0) return;
+    canvas.style.width = `${canvas.width * scale}px`;
+    canvas.style.height = `${canvas.height * scale}px`;
+  }
+
+  async function renderCompositionPreview(canvas) {
+    const frame = frames.find(item => item.id === activeFrame);
+    if (!canvas) return;
+    if (!frame?.size) throw new Error("Ukuran frame tidak tersedia.");
+    const targets = shots.map((shot, index) => getPhotoTarget(index));
+    if (targets.some(target => !target)) throw new Error("Slot frame tidak tersedia untuk preview.");
+    const version = (previewRenderVersions.get(canvas) || 0) + 1;
+    previewRenderVersions.set(canvas, version);
+    const [frameImage, ...shotImages] = await Promise.all([
+      getFrameOverlay(activeFrame),
+      ...shots.map(getShotPreview)
+    ]);
+    if (previewRenderVersions.get(canvas) !== version || activeFrame !== frame.id) return;
+
+    const width = frame.size.width;
+    const height = frame.size.height;
+    const scale = Math.min(1, 1200 / Math.max(width, height));
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas preview tidak tersedia di browser ini.");
+    context.setTransform(scale, 0, 0, scale, 0, 0);
+    shots.forEach((shot, index) => {
+      drawPhotoInSlot(context, shotImages[index], shot, targets[index]);
+    });
+    context.drawImage(frameImage, 0, 0, width, height);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    fitCanvasToParent(canvas);
+  }
+
+  function openCropEditor(index) {
+    const shot = shots[index];
+    const frame = frames.find(item => item.id === activeFrame);
+    const aspect = frame?.size ? frame.size.width / frame.size.height : getCropAspect(index);
+    cropEditingIndex = index;
+    cropOriginalPosition = {
+      x: shot.cropX ?? 0.5,
+      y: shot.cropY ?? 0.5,
+      zoom: shot.cropZoom ?? 1
+    };
+    cropViewport.style.setProperty("--crop-aspect", String(aspect));
+    cropEditor.hidden = false;
+    fitCropViewport(aspect);
+    document.body.classList.add("crop-edit-open");
+    cropViewport.focus();
+    updateCropControls();
+    renderCompositionPreview(cropCanvas).catch(error =>
+      showNotice("reviewNotice", `Gagal menampilkan editor foto: ${error.message}`, "error")
+    );
+  }
+
+  function updateCropControls() {
+    if (cropEditingIndex === null) return;
+    const zoom = shots[cropEditingIndex].cropZoom ?? 1;
+    cropZoomLevel.textContent = `${zoom.toFixed(1)}×`;
+    document.getElementById("zoomOutButton").disabled = zoom <= 1;
+    document.getElementById("zoomInButton").disabled = zoom >= 3;
+  }
+
+  function refreshCropPreview() {
+    renderCompositionPreview(cropCanvas).catch(error =>
+      showNotice("reviewNotice", `Gagal memperbarui preview foto: ${error.message}`, "error")
+    );
+  }
+
+  function adjustCropZoom(amount) {
+    if (cropEditingIndex === null) return;
+    const shot = shots[cropEditingIndex];
+    shot.cropZoom = Math.max(1, Math.min(3, Math.round(((shot.cropZoom ?? 1) + amount) * 10) / 10));
+    updateCropControls();
+    refreshCropPreview();
+  }
+
+  function fitCropViewport(aspect) {
+    const maxWidth = Math.max(1, Math.min(520, window.innerWidth - 68, window.innerHeight * 0.58 * aspect));
+    cropViewport.style.width = `${maxWidth}px`;
+  }
+
+  function closeCropEditor(saveChanges) {
+    if (cropEditingIndex === null) return;
+    if (!saveChanges) {
+      shots[cropEditingIndex].cropX = cropOriginalPosition.x;
+      shots[cropEditingIndex].cropY = cropOriginalPosition.y;
+      shots[cropEditingIndex].cropZoom = cropOriginalPosition.zoom;
+    }
+    cropEditor.hidden = true;
+    document.body.classList.remove("crop-edit-open");
+    cropEditingIndex = null;
+    cropOriginalPosition = null;
+    cropDrag = null;
+    cropViewport.classList.remove("dragging");
+    renderReview();
+  }
+
+  function updateCaptureCopy() {
+    const isRetake = retakeIndex !== null;
+    document.getElementById("captureActionTitle").textContent =
+      isRetake ? `Ulangi foto ${retakeIndex + 1}?` : "Siap untuk foto?";
+    document.getElementById("captureActionText").textContent =
+      isRetake ? "Foto lain tidak akan berubah." : `Kita akan mengambil ${photoCount} foto dengan hitung mundur.`;
+    document.getElementById("captureButton").textContent = isRetake ? "RETAKE FOTO INI" : "MULAI FOTO";
+    const notice = document.getElementById("retakeNotice");
+    notice.textContent = isRetake ? `Mode retake · foto ${retakeIndex + 1} dari ${photoCount}` : "";
+    notice.classList.toggle("active", isRetake);
+    document.getElementById("captureSubtitle").textContent =
+      isRetake ? "Ambil ulang foto yang dipilih." : "Lihat kamera, lalu sentuh tombol untuk mulai.";
+    document.getElementById("backToFrames").textContent =
+      isRetake ? "← KEMBALI KE CEK FOTO" : "← GANTI FRAME";
+    renderMiniShots();
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function countdown(index) {
+    countLabel.textContent = `FOTO ${index + 1}`;
+    countOverlay.classList.add("active");
+    for (let number = 3; number >= 1; number--) {
+      countText.textContent = String(number);
+      await sleep(850);
+    }
+    countOverlay.classList.remove("active");
+  }
+
+  async function capturePhoto(index) {
+    await countdown(index);
+    if (!cameraReady || !liveFeed.videoWidth || !liveFeed.videoHeight) {
+      throw new Error("Kamera belum siap. Aktifkan kamera lalu coba lagi.");
+    }
+    const flash = document.getElementById("cameraFlash");
+    flash.classList.remove("active");
+    void flash.offsetWidth;
+    flash.classList.add("active");
+    const canvas = document.createElement("canvas");
+    canvas.width = liveFeed.videoWidth;
+    canvas.height = liveFeed.videoHeight;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("Tidak dapat menyiapkan foto di browser.");
+    if (cameraFacingMode === "user") {
+      context.translate(canvas.width, 0);
+      context.scale(-1, 1);
+    }
+    context.drawImage(liveFeed, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", .92));
+    if (!blob) throw new Error("Browser gagal memproses foto.");
+    return { blob, url: URL.createObjectURL(blob), cropX: 0.5, cropY: 0.5, cropZoom: 1 };
+  }
+
+  async function beginCapture() {
+    if (busy || !cameraReady) return;
+    busy = true;
+    document.body.classList.add("capturing-photo");
+    document.getElementById("captureButton").disabled = true;
+    document.getElementById("backToFrames").disabled = true;
+    cameraFacingSelect.disabled = true;
+    showNotice("captureNotice");
+    try {
+      if (retakeIndex !== null) {
+        const index = retakeIndex;
+        const replacement = await capturePhoto(index);
+        URL.revokeObjectURL(shots[index].url);
+        shots[index] = replacement;
+        retakeIndex = null;
+        await stopBrowserCamera();
+        renderReview();
+        return;
+      }
+
+      showScreen("captureScreen", 2);
+      for (let index = shots.length; index < photoCount; index++) {
+        const shot = await capturePhoto(index);
+        shots.push(shot);
+        renderMiniShots();
+      }
+      await stopBrowserCamera();
+      renderReview();
+    } catch (error) {
+      countOverlay.classList.remove("active");
+      showNotice("captureNotice", error.message || "Foto gagal diambil.", "error");
+      updateCaptureCopy();
+    } finally {
+      busy = false;
+      document.body.classList.remove("capturing-photo");
+      document.getElementById("captureButton").disabled = !cameraReady;
+      document.getElementById("backToFrames").disabled = false;
+      cameraFacingSelect.disabled = false;
+    }
+  }
+
+  function startRetake(index) {
+    retakeIndex = index;
+    showScreen("captureScreen", 2);
+    updateCaptureCopy();
+    showNotice("captureNotice");
+    startBrowserCamera().catch(error => showNotice("captureNotice", error.message, "error"));
+  }
+
+  async function composePhoto() {
+    if (busy || shots.length !== photoCount) return;
+    busy = true;
+    const button = document.getElementById("composeButton");
+    button.disabled = true;
+    button.textContent = "MENYUSUN FOTO…";
+    showNotice("reviewNotice", "Sedang menyiapkan hasil fotomu…");
+    try {
+      await postJson("/api/set_frame", { frame: activeFrame });
+      const form = new FormData();
+      form.append("frame", activeFrame);
+      shots.forEach((shot, index) => {
+        form.append("shots", shot.blob, `foto_${index + 1}.jpg`);
+        form.append("crop_x", String(shot.cropX ?? 0.5));
+        form.append("crop_y", String(shot.cropY ?? 0.5));
+        form.append("crop_zoom", String(shot.cropZoom ?? 1));
+      });
+      const data = await apiJson("/api/compose", { method: "POST", body: form });
+      document.getElementById("resultImage").src = `${data.local.photo_view_url}?v=${Date.now()}`;
+      document.getElementById("qrImage").src = data.local.session_qr_data_url;
+      document.getElementById("qrImage").hidden = false;
+      document.getElementById("qrPlaceholder").hidden = true;
+      const openResultLink = document.getElementById("openResultLink");
+      openResultLink.href = data.local.session_view_url;
+      openResultLink.textContent = "Buka galeri hasil sesi";
+      openResultLink.hidden = false;
+      document.getElementById("qrStatus").textContent = "QR siap dipindai untuk melihat dan mengunduh semua foto.";
+      showNotice("deliveryNotice");
+      showScreen("deliveryScreen", 4);
+    } catch (error) {
+      showNotice("reviewNotice", error.message || "Hasil foto gagal disiapkan.", "error");
+    } finally {
+      busy = false;
+      button.disabled = false;
+      button.textContent = "LANJUT KE HASIL  →";
+    }
+  }
+
+  function resetSession() {
+    stopBrowserCamera();
+    clearShots();
+    retakeIndex = null;
+    photoCount = 0;
+    updatePhotoCountInfo();
+    renderMiniShots();
+    showNotice("notice");
+    showNotice("deliveryNotice");
+    showScreen("frameScreen", 1);
+    updateFrameSelection();
+  }
+
+  function clearShots() {
+    shots.forEach(shot => URL.revokeObjectURL(shot.url));
+    shots = [];
+  }
+
+  document.getElementById("continueToCapture").addEventListener("click", async () => {
+    if (!activeFrame) return;
+    clearShots();
+    retakeIndex = null;
+    renderMiniShots();
+    updateCaptureCopy();
+    showScreen("captureScreen", 2);
+    showNotice("captureNotice");
+    const cameraStart = startBrowserCamera();
+    try {
+      await Promise.all([
+        postJson("/api/set_frame", { frame: activeFrame }),
+        cameraStart
+      ]);
+    } catch (error) {
+      await stopBrowserCamera();
+      showNotice("captureNotice", `Gagal menyiapkan kamera/frame: ${error.message}`, "error");
+    }
+  });
+  document.getElementById("captureButton").addEventListener("click", beginCapture);
+  document.getElementById("activateCameraButton").addEventListener("click", async () => {
+    const button = document.getElementById("activateCameraButton");
+    button.disabled = true;
+    try {
+      await startBrowserCamera();
+      showNotice("captureNotice");
+    } catch (error) {
+      showNotice("captureNotice", error.message, "error");
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.getElementById("backToFrames").addEventListener("click", async () => {
+    await stopBrowserCamera();
+    if (retakeIndex !== null) {
+      retakeIndex = null;
+      renderReview();
+      showNotice("reviewNotice", "Retake dibatalkan. Foto yang sudah diambil tetap tersimpan.", "success");
+      return;
+    }
+    showScreen("frameScreen", 1);
+  });
+  document.getElementById("composeButton").addEventListener("click", composePhoto);
+  reviewCanvas.addEventListener("click", event => {
+    const index = getPreviewShotIndex(event.clientX, event.clientY);
+    if (index >= 0) openCropEditor(index);
+  });
+  cropViewport.addEventListener("pointerdown", event => {
+    if (cropEditingIndex === null) return;
+    const frame = frames.find(item => item.id === activeFrame);
+    const target = getPhotoTarget(cropEditingIndex);
+    const image = shots[cropEditingIndex].previewImage;
+    if (!frame?.size || !target || !image?.naturalWidth || !image?.naturalHeight) return;
+    const rect = cropCanvas.getBoundingClientRect();
+    const frameScaleX = rect.width / frame.size.width;
+    const frameScaleY = rect.height / frame.size.height;
+    const targetLeft = rect.left + target.x * frameScaleX;
+    const targetTop = rect.top + target.y * frameScaleY;
+    const targetRight = targetLeft + target.width * frameScaleX;
+    const targetBottom = targetTop + target.height * frameScaleY;
+    if (
+      event.clientX < targetLeft || event.clientX > targetRight ||
+      event.clientY < targetTop || event.clientY > targetBottom
+    ) return;
+    const zoom = shots[cropEditingIndex].cropZoom ?? 1;
+    const scale = Math.max(target.width / image.naturalWidth, target.height / image.naturalHeight) * zoom;
+    cropDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      cropX: shots[cropEditingIndex].cropX ?? 0.5,
+      cropY: shots[cropEditingIndex].cropY ?? 0.5,
+      overflowX: Math.max(0, image.naturalWidth * scale - target.width) * frameScaleX,
+      overflowY: Math.max(0, image.naturalHeight * scale - target.height) * frameScaleY
+    };
+    cropViewport.setPointerCapture(event.pointerId);
+    cropViewport.classList.add("dragging");
+    event.preventDefault();
+  });
+  cropViewport.addEventListener("pointermove", event => {
+    if (!cropDrag || cropDrag.pointerId !== event.pointerId || cropEditingIndex === null) return;
+    const shot = shots[cropEditingIndex];
+    if (cropDrag.overflowX > 0) {
+      shot.cropX = Math.max(0, Math.min(1, cropDrag.cropX - (event.clientX - cropDrag.startX) / cropDrag.overflowX));
+    }
+    if (cropDrag.overflowY > 0) {
+      shot.cropY = Math.max(0, Math.min(1, cropDrag.cropY - (event.clientY - cropDrag.startY) / cropDrag.overflowY));
+    }
+    refreshCropPreview();
+  });
+  const endCropDrag = event => {
+    if (cropDrag && cropDrag.pointerId === event.pointerId) {
+      cropDrag = null;
+      cropViewport.classList.remove("dragging");
+    }
+  };
+  cropViewport.addEventListener("pointerup", endCropDrag);
+  cropViewport.addEventListener("pointercancel", endCropDrag);
+  window.addEventListener("resize", () => {
+    fitCanvasToParent(reviewCanvas);
+    if (cropEditingIndex !== null) {
+      const frame = frames.find(item => item.id === activeFrame);
+      if (frame?.size) {
+        fitCropViewport(frame.size.width / frame.size.height);
+        fitCanvasToParent(cropCanvas);
+      }
+    }
+  });
+  cropViewport.addEventListener("keydown", event => {
+    if (cropEditingIndex === null) return;
+    const step = event.shiftKey ? 0.1 : 0.03;
+    const shot = shots[cropEditingIndex];
+    if (event.key === "ArrowLeft") shot.cropX = Math.max(0, (shot.cropX ?? 0.5) - step);
+    else if (event.key === "ArrowRight") shot.cropX = Math.min(1, (shot.cropX ?? 0.5) + step);
+    else if (event.key === "ArrowUp") shot.cropY = Math.max(0, (shot.cropY ?? 0.5) - step);
+    else if (event.key === "ArrowDown") shot.cropY = Math.min(1, (shot.cropY ?? 0.5) + step);
+    else if (event.key === "+" || event.key === "=") shot.cropZoom = Math.min(3, Math.round(((shot.cropZoom ?? 1) + 0.1) * 10) / 10);
+    else if (event.key === "-") shot.cropZoom = Math.max(1, Math.round(((shot.cropZoom ?? 1) - 0.1) * 10) / 10);
+    else return;
+    event.preventDefault();
+    updateCropControls();
+    refreshCropPreview();
+  });
+  document.getElementById("centerCropButton").addEventListener("click", () => {
+    if (cropEditingIndex === null) return;
+    shots[cropEditingIndex].cropX = 0.5;
+    shots[cropEditingIndex].cropY = 0.5;
+    refreshCropPreview();
+  });
+  document.getElementById("zoomOutButton").addEventListener("click", () => adjustCropZoom(-0.1));
+  document.getElementById("zoomInButton").addEventListener("click", () => adjustCropZoom(0.1));
+  document.getElementById("saveCropButton").addEventListener("click", () => closeCropEditor(true));
+  document.getElementById("cancelCropButton").addEventListener("click", () => closeCropEditor(false));
+  cropEditor.addEventListener("click", event => {
+    if (event.target === cropEditor) closeCropEditor(false);
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeCropEditor(false);
+  });
+  document.getElementById("reviewBackButton").addEventListener("click", async () => {
+    try {
+      await startBrowserCamera();
+      clearShots();
+      retakeIndex = null;
+      updateCaptureCopy();
+      showScreen("captureScreen", 2);
+    } catch (error) {
+      showNotice("reviewNotice", error.message, "error");
+    }
+  });
+  document.getElementById("newSessionButton").addEventListener("click", resetSession);
+  cameraFacingSelect.addEventListener("change", async event => {
+    const shouldRestart = Boolean(cameraStream);
+    cameraFacingMode = event.target.value;
+    updateCameraLabel();
+    if (shouldRestart) {
+      try {
+        await startBrowserCamera();
+      } catch (error) {
+        showNotice("captureNotice", error.message, "error");
+      }
+    }
+  });
+  document.getElementById("fullscreenButton").addEventListener("click", async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch (error) {
+      showNotice("notice", `Mode layar penuh tidak tersedia: ${error.message}`, "error");
+    }
+  });
+
+  cameraFacingSelect.value = cameraFacingMode;
+  updateCameraLabel();
+  loadFrames();
+</script>
+</body>
+</html>
