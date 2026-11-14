@@ -11,9 +11,6 @@ token.json
 
 # Output runtime
 output/
-*.jpg
-*.jpeg
-*.png
 *.mp4
 *.avi
 
