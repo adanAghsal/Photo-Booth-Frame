@@ -44,7 +44,7 @@ SESSION_FILE_RE = re.compile(
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(os.path.join(OUTPUT_DIR, "sessions"), exist_ok=True)
 
-JPEG_QUALITY_SAVE = 90  # turunin dikit biar upload lebih ringan
+JPEG_QUALITY_SAVE = 95
 
 # Green key (slot detection + knock-out alpha) kalau frame slot-nya hijau
 GREEN_KEY_HEX = "#01e678"
@@ -235,21 +235,6 @@ def hex_to_rgb_tuple(hex_color: str):
     if len(s) != 6:
         raise ValueError("Hex color must be 6 chars, e.g. #01e678")
     return int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)
-
-
-def trim_black_borders(img_rgb: Image.Image, thresh: int = 12) -> Image.Image:
-    arr = np.array(img_rgb)
-    gray = arr.mean(axis=2)
-    mask = gray > thresh
-    if not mask.any():
-        return img_rgb
-    ys, xs = np.where(mask)
-    x1, x2 = xs.min(), xs.max() + 1
-    y1, y2 = ys.min(), ys.max() + 1
-    pad = 2
-    x1 = max(0, x1 - pad); y1 = max(0, y1 - pad)
-    x2 = min(arr.shape[1], x2 + pad); y2 = min(arr.shape[0], y2 + pad)
-    return img_rgb.crop((x1, y1, x2, y2))
 
 
 def cover_resize_center_crop(
@@ -443,9 +428,8 @@ def compose_strip_photo(
     if len(holes) > 1:
         for i, hinfo in enumerate(holes):
             x1, y1, x2, y2 = hinfo["bbox_px"]
-            shot = trim_black_borders(shots_rgb[i])
             tile = cover_resize_center_crop(
-                shot,
+                shots_rgb[i],
                 x2 - x1,
                 y2 - y1,
                 crop_positions[i],
@@ -466,7 +450,7 @@ def compose_strip_photo(
             top = y0 + (gap // 2 if i else 0)
             bottom = y_next - (gap - gap // 2 if i < len(shots_rgb) - 1 else 0)
             tile = cover_resize_center_crop(
-                trim_black_borders(shot), sw, bottom - top, crop_positions[i], crop_zooms[i]
+                shot, sw, bottom - top, crop_positions[i], crop_zooms[i]
             ).convert("RGBA")
             collage.paste(tile, (0, top))
 
@@ -479,9 +463,8 @@ def compose_strip_photo(
         x1, y1, x2, y2 = hinfo["bbox_px"]
         sw, sh = (x2 - x1), (y2 - y1)
 
-        shot = trim_black_borders(shots_rgb[i])
         shot = cover_resize_center_crop(
-            shot, sw, sh, crop_positions[i], crop_zooms[i]
+            shots_rgb[i], sw, sh, crop_positions[i], crop_zooms[i]
         ).convert("RGBA")
         base.paste(shot, (x1, y1), hinfo["mask"])
 
@@ -564,7 +547,6 @@ def compose_strip_live_video(frame_rgba: Image.Image, clip_paths: list[str], hol
                 x1, y1, x2, y2 = hinfo["bbox_px"]
                 sw, sh = (x2 - x1), (y2 - y1)
 
-                shot_img = trim_black_borders(shot_img)
                 shot_fit = cover_resize_center_crop(shot_img, sw, sh).convert("RGBA")
                 base.paste(shot_fit, (x1, y1), hinfo["mask"])
 
@@ -607,7 +589,13 @@ def load_all_frames():
                     f"Frame '{fn}' gagal detect slot. Pastikan slot transparan atau pakai hijau key {GREEN_KEY_HEX}"
                 )
 
-            FRAMES[frame_id] = {"path": path, "img": img, "holes": holes}
+            file_stat = os.stat(path)
+            FRAMES[frame_id] = {
+                "path": path,
+                "img": img,
+                "holes": holes,
+                "preview_version": f"{file_stat.st_mtime_ns}-{file_stat.st_size}",
+            }
             print(f"[OK] Frame '{frame_id}' slots={len(holes)} ({fn})")
 
     if not FRAMES and os.path.exists(FALLBACK_FRAME_PATH):
@@ -615,7 +603,13 @@ def load_all_frames():
         holes, img = detect_slots_auto(img_raw)
         if len(holes) < 1:
             raise RuntimeError("Fallback frame.png gagal detect slot.")
-        FRAMES["default"] = {"path": FALLBACK_FRAME_PATH, "img": img, "holes": holes}
+        file_stat = os.stat(FALLBACK_FRAME_PATH)
+        FRAMES["default"] = {
+            "path": FALLBACK_FRAME_PATH,
+            "img": img,
+            "holes": holes,
+            "preview_version": f"{file_stat.st_mtime_ns}-{file_stat.st_size}",
+        }
 
     if not FRAMES:
         raise FileNotFoundError("No frames found. Put PNGs in frames/ or provide frame.png")
@@ -634,6 +628,11 @@ _load_recent_sessions()
 @app.get("/")
 def home():
     return render_template("index.html", app_base_path=APP_BASE_PATH)
+
+
+@app.get("/assets/logo")
+def logo_asset():
+    return send_from_directory(os.path.join(BASE_DIR, "assets"), "LOGOS (3).png")
 
 
 @app.get("/file/<path:filename>")
@@ -691,15 +690,35 @@ def download(filename):
 
 @app.get("/frame_preview/<path:frame_id>")
 def frame_preview(frame_id):
+    return _frame_image_response(frame_id)
+
+
+@app.get("/frame_thumbnail/<path:frame_id>")
+def frame_thumbnail(frame_id):
+    return _frame_image_response(frame_id, (384, 576))
+
+
+def _frame_image_response(frame_id: str, max_size: tuple[int, int] | None = None):
     frame = FRAMES.get(frame_id)
     if frame is None:
         abort(404)
-    preview = io.BytesIO()
-    frame["img"].save(preview, format="PNG")
+
+    cache_key = "thumbnail_png" if max_size else "preview_png"
+    image_bytes = frame.get(cache_key)
+    if image_bytes is None:
+        image = frame["img"]
+        if max_size:
+            image = image.copy()
+            image.thumbnail(max_size, Image.Resampling.LANCZOS)
+        preview = io.BytesIO()
+        image.save(preview, format="PNG", optimize=bool(max_size))
+        image_bytes = preview.getvalue()
+        frame[cache_key] = image_bytes
+
     return app.response_class(
-        preview.getvalue(),
+        image_bytes,
         mimetype="image/png",
-        headers={"Cache-Control": "no-store"},
+        headers={"Cache-Control": "public, max-age=86400"},
     )
 
 
@@ -756,6 +775,7 @@ def api_frames():
                     "width": v["img"].width,
                     "height": v["img"].height,
                 },
+                "preview_version": v["preview_version"],
                 "slot_bounds": [
                     {
                         "x": hole["bbox_px"][0],

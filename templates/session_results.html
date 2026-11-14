@@ -44,7 +44,7 @@
       {% for item in files %}
       <article class="photo-card">
         <div class="preview">
-          <img src="{{ item.view_url }}" alt="{{ item.label }}" loading="lazy" />
+          <img src="{{ item.view_url }}" alt="{{ item.label }}" loading="lazy" decoding="async" />
         </div>
         <div class="card-footer">
           <strong>{{ item.label }}</strong>
