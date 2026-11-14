@@ -635,6 +635,15 @@ def logo_asset():
     return send_from_directory(os.path.join(BASE_DIR, "assets"), "LOGOS (3).png")
 
 
+@app.get("/favicon.ico")
+def favicon_asset():
+    return send_from_directory(
+        os.path.join(BASE_DIR, "assets"),
+        "favicon.ico",
+        mimetype="image/png",
+    )
+
+
 @app.get("/file/<path:filename>")
 def file_view(filename):
     if not PUBLIC_PHOTO_FILENAME_RE.fullmatch(filename):
@@ -678,7 +687,11 @@ def session_results(session_id):
             )
         )
         item["download_url"] = f'{item["view_url"]}?download=1'
-    return render_template("session_results.html", files=files)
+    return render_template(
+        "session_results.html",
+        files=files,
+        app_base_path=APP_BASE_PATH,
+    )
 
 
 @app.get("/download/<path:filename>")
