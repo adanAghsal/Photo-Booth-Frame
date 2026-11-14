@@ -32,6 +32,8 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 FRAME_DIR = os.path.join(BASE_DIR, "frames")
 FALLBACK_FRAME_PATH = os.path.join(BASE_DIR, "frame.png")  # optional
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
+APP_BASE_PATH = os.environ.get("APP_BASE_PATH", "").strip().strip("/")
+APP_BASE_PATH = f"/{APP_BASE_PATH}" if APP_BASE_PATH else ""
 PUBLIC_PHOTO_FILENAME_RE = re.compile(r"photo_[0-9a-f]{64}\.jpg", re.ASCII)
 SESSION_ID_RE = re.compile(r"[A-Za-z0-9_-]{43}", re.ASCII)
 SESSION_FILE_RE = re.compile(
@@ -51,6 +53,10 @@ GREEN_KEY_HEX = "#01e678"
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
 
 ACTIVE_FRAME: str | None = None
+
+
+def _app_path(path: str) -> str:
+    return f"{APP_BASE_PATH}{path}"
 
 
 # =========================
@@ -627,7 +633,7 @@ _load_recent_sessions()
 # =========================
 @app.get("/")
 def home():
-    return render_template("index.html")
+    return render_template("index.html", app_base_path=APP_BASE_PATH)
 
 
 @app.get("/file/<path:filename>")
@@ -665,10 +671,12 @@ def session_results(session_id):
     except (FileNotFoundError, ValueError):
         abort(404)
     for item in files:
-        item["view_url"] = url_for(
-            "session_file_view",
-            session_id=session_id,
-            filename=item["filename"],
+        item["view_url"] = _app_path(
+            url_for(
+                "session_file_view",
+                session_id=session_id,
+                filename=item["filename"],
+            )
         )
         item["download_url"] = f'{item["view_url"]}?download=1'
     return render_template("session_results.html", files=files)

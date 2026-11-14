@@ -121,6 +121,8 @@ $env:PUBLIC_BASE_URL = "https://booth.example.com"
 python app.py
 ```
 
+To mount the app at a path on an existing domain, such as `https://example.com/photobooth`, set `APP_BASE_PATH=/photobooth` and `PUBLIC_BASE_URL=https://example.com/photobooth`. Configure the reverse proxy to strip `/photobooth/` before forwarding requests to Flask, and preserve the trailing slash with a redirect from `/photobooth`.
+
 The default local URL fallback is useful for development, but is not suitable behind a reverse proxy. Browser camera access requires HTTPS (localhost is also allowed by browsers). Configure DNS and TLS for the domain; opening an HTTP page on a phone, tablet, or computer will not grant camera access.
 
 Each capture is stored under its own `output/sessions/<session-id>/` directory on the server, with the composed result and individual original photos. If the frame has transparent areas, the composed result is saved as PNG to preserve them instead of adding a white background; otherwise it is saved as JPEG. When transparency is present, a second JPEG uses the frame's dominant edge color as its background for sharing as a regular photo. The QR code opens a gallery containing the composed result, the optional color-background JPG, and every individual photo. Photos are delivered through this QR gallery only; no email or Google Drive connection is used.
