@@ -121,6 +121,16 @@ $env:PUBLIC_BASE_URL = "https://booth.example.com"
 python app.py
 ```
 
+The admin session gallery is available from the button on the landing page. It is disabled until both `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` are set; use a strong password and a separate random session secret, and keep both out of source control. For example, in PowerShell:
+
+```powershell
+$env:ADMIN_PASSWORD = "use-a-strong-private-password"
+$env:ADMIN_SESSION_SECRET = "use-a-long-random-secret"
+python app.py
+```
+
+The admin password protects the session index and its admin gallery links. Individual QR gallery links remain accessible to anyone who has the link.
+
 To mount the app at a path on an existing domain, such as `https://example.com/photobooth`, set `APP_BASE_PATH=/photobooth` and `PUBLIC_BASE_URL=https://example.com/photobooth`. Configure the reverse proxy to strip `/photobooth/` before forwarding requests to Flask, and preserve the trailing slash with a redirect from `/photobooth`.
 
 The default local URL fallback is useful for development, but is not suitable behind a reverse proxy. Browser camera access requires HTTPS (localhost is also allowed by browsers). Configure DNS and TLS for the domain; opening an HTTP page on a phone, tablet, or computer will not grant camera access.

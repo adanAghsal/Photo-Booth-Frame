@@ -5,6 +5,7 @@ import io
 import time
 import base64
 import copy
+import hmac
 import json
 import secrets
 import sqlite3
@@ -13,6 +14,7 @@ import subprocess
 import shutil
 import re
 from contextlib import closing
+from datetime import datetime
 from typing import Any
 from urllib.parse import quote, unquote, urlsplit
 
@@ -20,7 +22,17 @@ import cv2
 import numpy as np
 from PIL import Image
 import qrcode
-from flask import Flask, render_template, request, jsonify, send_from_directory, abort, url_for
+from flask import (
+    Flask,
+    abort,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 
 # =========================
 # Paths / Config
@@ -32,6 +44,8 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 FRAME_DIR = os.path.join(BASE_DIR, "frames")
 FALLBACK_FRAME_PATH = os.path.join(BASE_DIR, "frame.png")  # optional
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_SESSION_SECRET = os.environ.get("ADMIN_SESSION_SECRET", "")
 APP_BASE_PATH = os.environ.get("APP_BASE_PATH", "").strip().strip("/")
 APP_BASE_PATH = f"/{APP_BASE_PATH}" if APP_BASE_PATH else ""
 PUBLIC_PHOTO_FILENAME_RE = re.compile(r"photo_[0-9a-f]{64}\.jpg", re.ASCII)
@@ -51,6 +65,12 @@ GREEN_KEY_HEX = "#01e678"
 
 
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
+app.secret_key = ADMIN_SESSION_SECRET or secrets.token_urlsafe(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=PUBLIC_BASE_URL.startswith("https://"),
+)
 
 ACTIVE_FRAME: str | None = None
 
@@ -630,6 +650,134 @@ def home():
     return render_template("index.html", app_base_path=APP_BASE_PATH)
 
 
+def _render_session_results(session_id: str, admin_list_url: str | None = None):
+    if not SESSION_ID_RE.fullmatch(session_id):
+        abort(404)
+    with SESSION_LOCK:
+        stored_job = _get_session_job_locked(session_id)
+        job = copy.deepcopy(stored_job) if stored_job is not None else None
+    if job is None:
+        abort(404)
+    try:
+        files = _session_gallery_files(session_id, job)
+    except (FileNotFoundError, ValueError):
+        abort(404)
+    for item in files:
+        item["view_url"] = _app_path(
+            url_for(
+                "session_file_view",
+                session_id=session_id,
+                filename=item["filename"],
+            )
+        )
+        item["download_url"] = f'{item["view_url"]}?download=1'
+    return render_template(
+        "session_results.html",
+        files=files,
+        app_base_path=APP_BASE_PATH,
+        admin_list_url=admin_list_url,
+    )
+
+
+@app.route("/admin/sessions", methods=["GET", "POST"])
+def admin_sessions():
+    if not ADMIN_PASSWORD or not ADMIN_SESSION_SECRET:
+        return render_template(
+            "admin_sessions.html",
+            admin_password_configured=False,
+            app_base_path=APP_BASE_PATH,
+        ), 503
+
+    if request.method == "POST":
+        supplied_password = request.form.get("password", "")
+        if not hmac.compare_digest(supplied_password, ADMIN_PASSWORD):
+            return render_template(
+                "admin_sessions.html",
+                admin_password_configured=True,
+                login_error=True,
+                app_base_path=APP_BASE_PATH,
+            ), 401
+        session.clear()
+        session["is_admin"] = True
+        return redirect(_app_path(url_for("admin_sessions")))
+
+    if not session.get("is_admin"):
+        return render_template(
+            "admin_sessions.html",
+            admin_password_configured=True,
+            app_base_path=APP_BASE_PATH,
+        )
+
+    with closing(sqlite3.connect(SESSION_DB_PATH, timeout=10)) as connection:
+        rows = connection.execute(
+            """
+            SELECT session_id, created_at, data_json
+            FROM session_jobs
+            ORDER BY created_at DESC
+            """
+        ).fetchall()
+
+    stored_sessions = []
+    for session_id, created_at, data_json in rows:
+        if not SESSION_ID_RE.fullmatch(session_id):
+            continue
+        job = json.loads(data_json)
+        if not isinstance(job, dict):
+            raise ValueError(f"Session record '{session_id}' is not a JSON object")
+        local = job.get("local")
+        if not isinstance(local, dict) or not local.get("photo_filename"):
+            continue
+
+        item = {
+            "session_id": session_id,
+            "created_at": datetime.fromtimestamp(created_at).strftime("%d-%m-%Y %H:%M"),
+            "frame": job.get("frame") or "-",
+            "gallery_available": True,
+            "gallery_url": _app_path(
+                url_for("admin_session_gallery", session_id=session_id)
+            ),
+            "image_count": 0,
+            "thumbnail_url": "",
+        }
+        try:
+            files = _session_gallery_files(session_id, job)
+        except (FileNotFoundError, ValueError):
+            item["gallery_available"] = False
+        else:
+            item["image_count"] = len(files)
+            item["thumbnail_url"] = _app_path(
+                url_for(
+                    "session_file_view",
+                    session_id=session_id,
+                    filename=files[0]["filename"],
+                )
+            )
+        stored_sessions.append(item)
+
+    return render_template(
+        "admin_sessions.html",
+        admin_password_configured=True,
+        is_admin=True,
+        sessions=stored_sessions,
+        app_base_path=APP_BASE_PATH,
+    )
+
+
+@app.get("/admin/sessions/<session_id>")
+def admin_session_gallery(session_id):
+    if not ADMIN_PASSWORD or not ADMIN_SESSION_SECRET:
+        abort(
+            503,
+            description="Atur ADMIN_PASSWORD dan ADMIN_SESSION_SECRET untuk mengaktifkan halaman admin.",
+        )
+    if not session.get("is_admin"):
+        return redirect(_app_path(url_for("admin_sessions")))
+    return _render_session_results(
+        session_id,
+        admin_list_url=_app_path(url_for("admin_sessions")),
+    )
+
+
 @app.get("/assets/logo")
 def logo_asset():
     return send_from_directory(os.path.join(BASE_DIR, "assets"), "LOGOS (3).png")
@@ -667,31 +815,7 @@ def session_file_view(session_id, filename):
 
 @app.get("/session-results/<session_id>")
 def session_results(session_id):
-    if not SESSION_ID_RE.fullmatch(session_id):
-        abort(404)
-    with SESSION_LOCK:
-        stored_job = _get_session_job_locked(session_id)
-        job = copy.deepcopy(stored_job) if stored_job is not None else None
-    if job is None:
-        abort(404)
-    try:
-        files = _session_gallery_files(session_id, job)
-    except (FileNotFoundError, ValueError):
-        abort(404)
-    for item in files:
-        item["view_url"] = _app_path(
-            url_for(
-                "session_file_view",
-                session_id=session_id,
-                filename=item["filename"],
-            )
-        )
-        item["download_url"] = f'{item["view_url"]}?download=1'
-    return render_template(
-        "session_results.html",
-        files=files,
-        app_base_path=APP_BASE_PATH,
-    )
+    return _render_session_results(session_id)
 
 
 @app.get("/download/<path:filename>")
